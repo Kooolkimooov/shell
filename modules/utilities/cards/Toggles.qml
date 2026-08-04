@@ -10,6 +10,7 @@ import qs.components.controls
 import qs.services
 import qs.modules.nexus
 import qs.modules.bar.popouts as BarPopouts
+import qs.modules.controlcenter
 
 StyledRect {
     id: root
