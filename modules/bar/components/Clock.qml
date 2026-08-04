@@ -81,7 +81,13 @@ StyledRect {
         }
 
         StyledText {
-            Layout.leftMargin: -parent.spacing - 4
+            Layout.alignment: Qt.AlignVCenter
+            text: ":"
+            font: root.font.build()
+            color: root.colour
+        }
+
+        StyledText {
             Layout.alignment: Qt.AlignVCenter
             text: Time.minuteStr
             font: {
@@ -99,7 +105,6 @@ StyledRect {
         }
 
         Loader {
-            Layout.leftMargin: -parent.spacing - 4
             Layout.alignment: Qt.AlignVCenter
             asynchronous: true
             active: GlobalConfig.services.useTwelveHourClock
