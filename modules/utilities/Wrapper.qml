@@ -16,6 +16,7 @@ Item {
     required property BarPopouts.Wrapper popouts
     property real horizontalStretch
     property matrix4x4 deformMatrix
+    property real extraTopMargin
 
     readonly property PersistentProperties props: PersistentProperties {
         property bool recordingListExpanded: false
@@ -31,7 +32,7 @@ Item {
     property real sidebarLerp
 
     visible: offsetScale < 1
-    anchors.topMargin: (-implicitHeight - 5) * offsetScale
+    anchors.topMargin: root.extraTopMargin + (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight + totalPadding
     implicitWidth: sidebar.width * (1 - sidebar.offsetScale) * horizontalStretch * sidebarLerp + Tokens.sizes.utilities.width * (1 - sidebarLerp)
     opacity: 1 - offsetScale
