@@ -51,16 +51,18 @@ CustomMouseArea {
         return y > height - bar.implicitHeight - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Utilities-specific corner check: right-edge-only, positioned with a real, visible buffer
-    // above the bar rather than just touching its edge - reachable only by approaching along the
-    // right edge, not by moving along the bottom edge toward the corner (which is what still
-    // interfered with the bar's own hover-reveal strip even with a mathematically non-overlapping
-    // boundary).
+    // Utilities-specific corner check: right-edge-only. While collapsed, the zone sits with a
+    // real buffer above the bar so it's only reachable along the right edge, not the bottom
+    // (avoiding the bar's own hover-reveal strip). As the panel opens, the buffer shrinks to 0
+    // and the trigger height grows to match the panel's real size, so the zone always covers
+    // wherever the actual visible content is - otherwise moving the mouse toward the bottom of
+    // an already-open panel to interact with it would fall outside the zone and snap it shut.
     function inUtilitiesCorner(panel: Item, x: real, y: real): bool {
+        const openness = 1 - (panel.offsetScale ?? 0); // qmllint disable missing-property
         const triggerWidth = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panel.width);
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
+        const panelHeight = panel.height * openness;
         const triggerHeight = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panelHeight);
-        const barBuffer = Config.sidebar.minHoverThreshold;
+        const barBuffer = Config.sidebar.minHoverThreshold * (1 - openness);
         const barTop = height - bar.clampedHeight - barBuffer;
         return x > width - triggerWidth && y > barTop - triggerHeight && y < barTop;
     }
