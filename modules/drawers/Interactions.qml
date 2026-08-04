@@ -51,23 +51,6 @@ CustomMouseArea {
         return y > height - bar.implicitHeight - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Utilities-specific hover check. Utilities slides off-screen via a negative topMargin
-    // when hidden (see Utilities.Wrapper), so panel.y is unreliable as a trigger reference
-    // while hidden - same reason inTop/inBottomPanel never reference panel.y either. Anchor
-    // the trigger zone to notifications.bottom instead, which stays put regardless of
-    // utilities' own hidden/shown state.
-    function inUtilitiesPanel(panel: Item, x: real, y: real): bool {
-        const triggerWidth = Math.max(Config.border.minThickness, Config.border.thickness + panel.width);
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        // Match sidebar's own hover trigger zone size (minHoverThreshold) rather than the tiny
-        // border.thickness fallback inTop/inBottomPanel use - those rely on the screen edge as a
-        // hard stop the cursor naturally rests against, but this zone sits a little off the true
-        // top (below notifications), so it needs to be generous enough to actually land in.
-        const triggerHeight = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panelHeight);
-        const anchorY = panels.y + panels.notifications.y + panels.notifications.height;
-        return x > width - triggerWidth && y >= anchorY - Config.border.rounding && y <= anchorY + triggerHeight + Config.border.rounding;
-    }
-
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
@@ -243,9 +226,8 @@ CustomMouseArea {
                 screenState.dashboard = false;
         }
 
-        // Show utilities on hover (right-anchored below notifications; inBottomPanel would
-        // collide with the bar's own bottom-edge hover zone now that the bar is horizontal)
-        const showUtilities = inUtilitiesPanel(panels.utilities, x, y);
+        // Show utilities on hover
+        const showUtilities = inBottomPanel(panels.utilities, x, y, true);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilitiesShortcutActive) {
@@ -316,7 +298,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.screenState.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inUtilitiesPanel(root.panels.utilities, root.mouseX, root.mouseY);
+                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY);
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }
