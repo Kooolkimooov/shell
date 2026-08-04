@@ -51,6 +51,18 @@ CustomMouseArea {
         return y > height - bar.implicitHeight - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
+    // Utilities-specific corner check: right-edge-primary (like inRightPanel) with a generous,
+    // fixed-size trigger zone anchored to the bar's own top edge rather than the panel's own
+    // (possibly collapsed) geometry. Approaching from the right side instead of the bottom keeps
+    // this zone cleanly above the bar's own full-width hover-reveal strip, no overlap possible.
+    function inUtilitiesCorner(panel: Item, x: real, y: real): bool {
+        const triggerWidth = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panel.width);
+        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
+        const triggerHeight = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panelHeight);
+        const barTop = height - bar.clampedHeight;
+        return x > width - triggerWidth && y > barTop - triggerHeight && y < barTop;
+    }
+
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
@@ -226,11 +238,8 @@ CustomMouseArea {
                 screenState.dashboard = false;
         }
 
-        // Show utilities on hover. inBottomPanel has no upper bound near the bar - its zone
-        // starts above the bar but extends all the way down through the bar's own hover-reveal
-        // zone (y > height - bar.clampedHeight, full width) - so the bottom-right corner triggers
-        // both simultaneously. Cap it so utilities' zone stops where the bar's own zone begins.
-        const showUtilities = inBottomPanel(panels.utilities, x, y, true) && y < height - bar.clampedHeight;
+        // Show utilities on hover
+        const showUtilities = inUtilitiesCorner(panels.utilities, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilitiesShortcutActive) {
@@ -301,7 +310,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.screenState.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY) && root.mouseY < root.height - root.bar.clampedHeight;
+                const inUtilitiesArea = root.inUtilitiesCorner(root.panels.utilities, root.mouseX, root.mouseY);
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }
