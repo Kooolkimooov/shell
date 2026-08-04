@@ -131,7 +131,7 @@ Item {
         sidebar: sidebar
         popouts: popoutsWrapper.content
 
-        anchors.bottom: parent.bottom
+        anchors.top: parent.top
         anchors.right: parent.right
     }
 
