@@ -51,18 +51,17 @@ CustomMouseArea {
         return y > height - bar.implicitHeight - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Right-anchored panel that isn't flush with the top (e.g. utilities, sitting below
-    // notifications). Needs the same collapsed-safe minimum trigger size as inTop/inBottomPanel
-    // - when the panel is hidden its content unloads and width/height shrink toward 0, so a
-    // plain inRightPanel-style check (no minimum) shrinks the hover zone to an unusable sliver
-    // right at the pixel edge - but anchored to the panel's own y instead of assuming 0.
-    function inOffsetRightPanel(panel: Item, x: real, y: real): bool {
-        const panelWidth = panel.width * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
+    // Utilities-specific hover check. Utilities slides off-screen via a negative topMargin
+    // when hidden (see Utilities.Wrapper), so panel.y is unreliable as a trigger reference
+    // while hidden - same reason inTop/inBottomPanel never reference panel.y either. Anchor
+    // the trigger zone to notifications.bottom instead, which stays put regardless of
+    // utilities' own hidden/shown state.
+    function inUtilitiesPanel(panel: Item, x: real, y: real): bool {
+        const triggerWidth = Math.max(Config.border.minThickness, Config.border.thickness + panel.width);
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        const triggerWidth = Math.max(Config.border.minThickness, Config.border.thickness + panelWidth);
         const triggerHeight = Math.max(Config.border.minThickness, Config.border.thickness + panelHeight);
-        const panelY = panels.y + panel.y;
-        return x > width - triggerWidth && y >= panelY - Config.border.rounding && y <= panelY + triggerHeight + Config.border.rounding;
+        const anchorY = panels.y + panels.notifications.y + panels.notifications.height;
+        return x > width - triggerWidth && y >= anchorY - Config.border.rounding && y <= anchorY + triggerHeight + Config.border.rounding;
     }
 
     function onWheel(event: WheelEvent): void {
@@ -242,7 +241,7 @@ CustomMouseArea {
 
         // Show utilities on hover (right-anchored below notifications; inBottomPanel would
         // collide with the bar's own bottom-edge hover zone now that the bar is horizontal)
-        const showUtilities = inOffsetRightPanel(panels.utilities, x, y);
+        const showUtilities = inUtilitiesPanel(panels.utilities, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilitiesShortcutActive) {
@@ -313,7 +312,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.screenState.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inOffsetRightPanel(root.panels.utilities, root.mouseX, root.mouseY);
+                const inUtilitiesArea = root.inUtilitiesPanel(root.panels.utilities, root.mouseX, root.mouseY);
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }
