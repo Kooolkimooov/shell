@@ -226,8 +226,11 @@ CustomMouseArea {
                 screenState.dashboard = false;
         }
 
-        // Show utilities on hover
-        const showUtilities = inBottomPanel(panels.utilities, x, y, true);
+        // Show utilities on hover. inBottomPanel has no upper bound near the bar - its zone
+        // starts above the bar but extends all the way down through the bar's own hover-reveal
+        // zone (y > height - bar.clampedHeight, full width) - so the bottom-right corner triggers
+        // both simultaneously. Cap it so utilities' zone stops where the bar's own zone begins.
+        const showUtilities = inBottomPanel(panels.utilities, x, y, true) && y < height - bar.clampedHeight;
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilitiesShortcutActive) {
@@ -298,7 +301,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.screenState.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY);
+                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY) && root.mouseY < root.height - root.bar.clampedHeight;
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }
