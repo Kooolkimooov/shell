@@ -36,7 +36,7 @@ Item {
 
     anchors.fill: parent
     anchors.margins: borderThickness
-    anchors.leftMargin: bar.implicitWidth
+    anchors.bottomMargin: bar.implicitHeight
 
     Item {
         id: osdWrapper
@@ -121,6 +121,7 @@ Item {
 
         screen: root.screen
         borderThickness: root.borderThickness
+        anchors.bottom: parent.bottom
     }
 
     Utilities.Wrapper {
@@ -130,14 +131,14 @@ Item {
         sidebar: sidebar
         popouts: popoutsWrapper.content
 
-        anchors.bottom: parent.bottom
+        anchors.top: parent.top
         anchors.right: parent.right
     }
 
     Toasts.Toasts {
         id: toasts
 
-        anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
+        anchors.bottom: parent.bottom
         anchors.right: sidebar.left
         anchors.margins: Tokens.padding.medium
     }
@@ -148,7 +149,7 @@ Item {
         screenState: root.screenState
 
         anchors.top: notifications.bottom
-        anchors.bottom: utilities.top
+        anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.topMargin: -notifications.anchors.topMargin
     }
