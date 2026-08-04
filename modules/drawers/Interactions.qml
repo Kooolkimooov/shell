@@ -59,7 +59,11 @@ CustomMouseArea {
     function inUtilitiesPanel(panel: Item, x: real, y: real): bool {
         const triggerWidth = Math.max(Config.border.minThickness, Config.border.thickness + panel.width);
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        const triggerHeight = Math.max(Config.border.minThickness, Config.border.thickness + panelHeight);
+        // Match sidebar's own hover trigger zone size (minHoverThreshold) rather than the tiny
+        // border.thickness fallback inTop/inBottomPanel use - those rely on the screen edge as a
+        // hard stop the cursor naturally rests against, but this zone sits a little off the true
+        // top (below notifications), so it needs to be generous enough to actually land in.
+        const triggerHeight = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panelHeight);
         const anchorY = panels.y + panels.notifications.y + panels.notifications.height;
         return x > width - triggerWidth && y >= anchorY - Config.border.rounding && y <= anchorY + triggerHeight + Config.border.rounding;
     }
