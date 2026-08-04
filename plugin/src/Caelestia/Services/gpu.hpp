@@ -3,6 +3,7 @@
 #include <qprocess.h>
 #include <qqmlintegration.h>
 #include <qstringlist.h>
+#include <qvariant.h>
 
 #include "config/enums.hpp"
 #include "tickingservice.hpp"
@@ -20,6 +21,10 @@ class Gpu : public TickingService {
     Q_PROPERTY(QString name READ name NOTIFY nameChanged)
     Q_PROPERTY(qreal percentage READ percentage NOTIFY percentageChanged)
     Q_PROPERTY(qreal temperature READ temperature NOTIFY temperatureChanged)
+    Q_PROPERTY(qreal power READ power NOTIFY powerChanged)
+    Q_PROPERTY(QVariantList fans READ fans NOTIFY fansChanged)
+    // Nvidia reports fan speed as a duty-cycle percentage; sensor-derived (Generic) fans report RPM.
+    Q_PROPERTY(bool fansArePercent READ fansArePercent NOTIFY typeChanged)
 
 public:
     explicit Gpu(QObject* parent = nullptr);
@@ -28,12 +33,17 @@ public:
     [[nodiscard]] QString name() const;
     [[nodiscard]] qreal percentage() const;
     [[nodiscard]] qreal temperature() const;
+    [[nodiscard]] qreal power() const;
+    [[nodiscard]] QVariantList fans() const;
+    [[nodiscard]] bool fansArePercent() const;
 
 signals:
     void typeChanged();
     void nameChanged();
     void percentageChanged();
     void temperatureChanged();
+    void powerChanged();
+    void fansChanged();
 
 protected:
     void tick() override;
@@ -52,6 +62,8 @@ private:
     void readGenericUsage();
     void startNvidiaUsage();
     void readGpuTemperature();
+    void readGpuPower();
+    void readGpuFans();
     void resetUsage();
 
     // Runs a one-shot process, delivering its stdout to callback exactly once (empty
@@ -68,6 +80,8 @@ private:
     QString m_name;
     qreal m_percentage = 0.0;
     qreal m_temperature = 0.0;
+    qreal m_power = 0.0;
+    QVariantList m_fans;
 
     // /sys/class/drm card busy files, enumerated once at construction (the card
     // set is static at runtime) and reused by resolution and the tick path.

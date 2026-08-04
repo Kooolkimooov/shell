@@ -15,6 +15,10 @@ StyledRect {
     required property color accent
     required property real usage
     required property real temperature
+    property real power: NaN
+    property list<var> fans: []
+    // Nvidia reports fan speed as a duty-cycle percentage; sensor-derived fans report RPM.
+    property bool fansArePercent: false
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.extraLarge
@@ -103,6 +107,45 @@ StyledRect {
             implicitHeight: Tokens.padding.small
             fgColour: root.accent
             indeterminate: isNaN(root.usage) || isNaN(root.temperature)
+        }
+
+        RowLayout {
+            Layout.leftMargin: -Tokens.padding.extraSmall
+            spacing: Tokens.spacing.extraSmall
+            visible: !isNaN(root.power)
+
+            MaterialIcon {
+                text: "bolt"
+                color: root.accent
+                fontStyle: Tokens.font.icon.medium
+                fill: 1
+            }
+
+            StyledText {
+                text: `${root.power.toFixed(1)} W`
+                font: Tokens.font.body.builders.medium.build()
+            }
+        }
+
+        Repeater {
+            model: root.fans
+
+            RowLayout {
+                Layout.leftMargin: -Tokens.padding.extraSmall
+                spacing: Tokens.spacing.extraSmall
+
+                MaterialIcon {
+                    text: "mode_fan"
+                    color: root.accent
+                    fontStyle: Tokens.font.icon.medium
+                    fill: 1
+                }
+
+                StyledText {
+                    text: root.fansArePercent ? `${Math.round(modelData)}%` : `${Math.round(modelData)} RPM`
+                    font: Tokens.font.body.builders.medium.build()
+                }
+            }
         }
     }
 
