@@ -162,6 +162,18 @@ qreal Gpu::temperature() const {
     return m_temperature;
 }
 
+qreal Gpu::power() const {
+    return m_power;
+}
+
+QVariantList Gpu::fans() const {
+    return m_fans;
+}
+
+bool Gpu::fansArePercent() const {
+    return type() == Nvidia;
+}
+
 void Gpu::setUserType(Type value) {
     if (value == m_userType) {
         return;
@@ -204,6 +216,8 @@ void Gpu::tick() {
     if (t == Generic) {
         readGenericUsage();
         readGpuTemperature();
+        readGpuPower();
+        readGpuFans();
     } else if (t == Nvidia) {
         startNvidiaUsage();
     } else {
@@ -214,6 +228,14 @@ void Gpu::tick() {
         if (std::abs(m_temperature) > 0.05) {
             m_temperature = 0.0;
             emit temperatureChanged();
+        }
+        if (std::abs(m_power) > 0.05) {
+            m_power = 0.0;
+            emit powerChanged();
+        }
+        if (!m_fans.isEmpty()) {
+            m_fans.clear();
+            emit fansChanged();
         }
     }
 }
@@ -310,7 +332,7 @@ void Gpu::startNvidiaUsage() {
     }
     m_nvidiaQuerying = true;
     runProcess(QStringLiteral("nvidia-smi"),
-        { QStringLiteral("--query-gpu=utilization.gpu,temperature.gpu"),
+        { QStringLiteral("--query-gpu=utilization.gpu,temperature.gpu,fan.speed,power.draw"),
             QStringLiteral("--format=csv,noheader,nounits") },
         [this](const QByteArray& out) {
             m_nvidiaQuerying = false;
@@ -331,6 +353,24 @@ void Gpu::startNvidiaUsage() {
                 m_temperature = temp;
                 emit temperatureChanged();
             }
+
+            if (parts.size() >= 3) {
+                bool ok3 = false;
+                const qreal fan = parts.at(2).trimmed().toDouble(&ok3);
+                const QVariantList newFans = ok3 ? QVariantList{ fan } : QVariantList{};
+                if (newFans != m_fans) {
+                    m_fans = newFans;
+                    emit fansChanged();
+                }
+            }
+            if (parts.size() >= 4) {
+                bool ok4 = false;
+                const qreal power = parts.at(3).trimmed().toDouble(&ok4);
+                if (ok4 && std::abs(power - m_power) > 0.05) {
+                    m_power = power;
+                    emit powerChanged();
+                }
+            }
         });
 }
 
@@ -340,6 +380,28 @@ void Gpu::readGpuTemperature() {
     if (std::abs(newTemp - m_temperature) > 0.05) {
         m_temperature = newTemp;
         emit temperatureChanged();
+    }
+}
+
+void Gpu::readGpuPower() {
+    const auto p = sensorslib::gpuPciPower();
+    const qreal newPower = p.value_or(0.0);
+    if (std::abs(newPower - m_power) > 0.05) {
+        m_power = newPower;
+        emit powerChanged();
+    }
+}
+
+void Gpu::readGpuFans() {
+    const auto rpms = sensorslib::gpuPciFanRpms();
+    QVariantList newFans;
+    newFans.reserve(rpms.size());
+    for (const double rpm : rpms) {
+        newFans << rpm;
+    }
+    if (newFans != m_fans) {
+        m_fans = newFans;
+        emit fansChanged();
     }
 }
 

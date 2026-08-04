@@ -43,6 +43,30 @@ void doInit() {
     return value;
 }
 
+[[nodiscard]] std::optional<double> readPowerInput(const sensors_chip_name* chip, const sensors_feature* feat) {
+    const sensors_subfeature* sf = sensors_get_subfeature(chip, feat, SENSORS_SUBFEATURE_POWER_INPUT);
+    if (!sf) {
+        return std::nullopt;
+    }
+    double value = 0.0;
+    if (sensors_get_value(chip, sf->number, &value) != 0) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+[[nodiscard]] std::optional<double> readFanInput(const sensors_chip_name* chip, const sensors_feature* feat) {
+    const sensors_subfeature* sf = sensors_get_subfeature(chip, feat, SENSORS_SUBFEATURE_FAN_INPUT);
+    if (!sf) {
+        return std::nullopt;
+    }
+    double value = 0.0;
+    if (sensors_get_value(chip, sf->number, &value) != 0) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 [[nodiscard]] QByteArray featureLabel(const sensors_chip_name* chip, const sensors_feature* feat) {
     char* raw = sensors_get_label(chip, feat);
     if (!raw) {
@@ -161,6 +185,113 @@ std::optional<double> gpuPciAverageTemp() {
         return sumFallback / countFallback;
     }
     return std::nullopt;
+}
+
+std::optional<double> cpuPackagePower() {
+    ensureInit();
+    if (!g_initOk.load(std::memory_order_acquire)) {
+        return std::nullopt;
+    }
+
+    int chipNr = 0;
+    while (const sensors_chip_name* chip = sensors_get_detected_chips(nullptr, &chipNr)) {
+        // GPUs live on the PCI bus; skip them so we don't conflate GPU power with CPU power.
+        if (chip->bus.type == SENSORS_BUS_TYPE_PCI) {
+            continue;
+        }
+
+        int featNr = 0;
+        while (const sensors_feature* feat = sensors_get_features(chip, &featNr)) {
+            if (feat->type != SENSORS_FEATURE_POWER) {
+                continue;
+            }
+            if (auto v = readPowerInput(chip, feat)) {
+                return v;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+QList<double> cpuFanRpms() {
+    ensureInit();
+    QList<double> fans;
+    if (!g_initOk.load(std::memory_order_acquire)) {
+        return fans;
+    }
+
+    int chipNr = 0;
+    while (const sensors_chip_name* chip = sensors_get_detected_chips(nullptr, &chipNr)) {
+        if (chip->bus.type == SENSORS_BUS_TYPE_PCI) {
+            continue;
+        }
+
+        int featNr = 0;
+        while (const sensors_feature* feat = sensors_get_features(chip, &featNr)) {
+            if (feat->type != SENSORS_FEATURE_FAN) {
+                continue;
+            }
+            if (auto v = readFanInput(chip, feat); v && *v > 0) {
+                fans << *v;
+            }
+        }
+    }
+
+    return fans;
+}
+
+std::optional<double> gpuPciPower() {
+    ensureInit();
+    if (!g_initOk.load(std::memory_order_acquire)) {
+        return std::nullopt;
+    }
+
+    int chipNr = 0;
+    while (const sensors_chip_name* chip = sensors_get_detected_chips(nullptr, &chipNr)) {
+        if (chip->bus.type != SENSORS_BUS_TYPE_PCI) {
+            continue;
+        }
+
+        int featNr = 0;
+        while (const sensors_feature* feat = sensors_get_features(chip, &featNr)) {
+            if (feat->type != SENSORS_FEATURE_POWER) {
+                continue;
+            }
+            if (auto v = readPowerInput(chip, feat)) {
+                return v;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+QList<double> gpuPciFanRpms() {
+    ensureInit();
+    QList<double> fans;
+    if (!g_initOk.load(std::memory_order_acquire)) {
+        return fans;
+    }
+
+    int chipNr = 0;
+    while (const sensors_chip_name* chip = sensors_get_detected_chips(nullptr, &chipNr)) {
+        if (chip->bus.type != SENSORS_BUS_TYPE_PCI) {
+            continue;
+        }
+
+        int featNr = 0;
+        while (const sensors_feature* feat = sensors_get_features(chip, &featNr)) {
+            if (feat->type != SENSORS_FEATURE_FAN) {
+                continue;
+            }
+            if (auto v = readFanInput(chip, feat)) {
+                fans << *v;
+            }
+        }
+    }
+
+    return fans;
 }
 
 } // namespace caelestia::services::sensorslib

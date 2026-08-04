@@ -25,12 +25,22 @@ qreal Cpu::temperature() const {
     return m_temperature;
 }
 
+qreal Cpu::power() const {
+    return m_power;
+}
+
+QVariantList Cpu::fans() const {
+    return m_fans;
+}
+
 void Cpu::tick() {
     if (!m_nameLoaded) {
         readNameOnce();
     }
     refreshPercentage();
     refreshTemperature();
+    refreshPower();
+    refreshFans();
 }
 
 void Cpu::readNameOnce() {
@@ -100,6 +110,28 @@ void Cpu::refreshTemperature() {
     if (std::abs(newTemp - m_temperature) > 0.05) {
         m_temperature = newTemp;
         emit temperatureChanged();
+    }
+}
+
+void Cpu::refreshPower() {
+    const auto p = sensorslib::cpuPackagePower();
+    const qreal newPower = p.value_or(0.0);
+    if (std::abs(newPower - m_power) > 0.05) {
+        m_power = newPower;
+        emit powerChanged();
+    }
+}
+
+void Cpu::refreshFans() {
+    const auto rpms = sensorslib::cpuFanRpms();
+    QVariantList newFans;
+    newFans.reserve(rpms.size());
+    for (const double rpm : rpms) {
+        newFans << rpm;
+    }
+    if (newFans != m_fans) {
+        m_fans = newFans;
+        emit fansChanged();
     }
 }
 

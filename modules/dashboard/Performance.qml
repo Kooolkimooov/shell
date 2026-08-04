@@ -76,6 +76,8 @@ Item {
                         subLabel: Cpu.name
                         usage: Cpu.percentage
                         temperature: Cpu.temperature
+                        power: Cpu.power > 0 ? Cpu.power : NaN
+                        fans: Cpu.fans
                         accent: Colours.palette.m3primary
 
                         ServiceRef {
@@ -95,6 +97,9 @@ Item {
                         subLabel: Gpu.name
                         usage: Gpu.percentage
                         temperature: Gpu.temperature
+                        power: Gpu.power > 0 ? Gpu.power : NaN
+                        fans: Gpu.fans
+                        fansArePercent: Gpu.fansArePercent
                         accent: Colours.palette.m3secondary
 
                         ServiceRef {
