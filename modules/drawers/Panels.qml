@@ -133,7 +133,7 @@ Item {
 
         anchors.top: notifications.bottom
         anchors.right: parent.right
-        extraTopMargin: -notifications.anchors.topMargin
+        extraTopMargin: -10
     }
 
     Toasts.Toasts {
