@@ -63,6 +63,7 @@ StyledRect {
         }
 
         StyledText {
+            Layout.leftMargin: Tokens.spacing.extraSmall
             Layout.alignment: Qt.AlignVCenter
             text: Time.hourStr
             font: {
