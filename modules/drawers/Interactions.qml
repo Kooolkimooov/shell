@@ -51,15 +51,17 @@ CustomMouseArea {
         return y > height - bar.implicitHeight - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Utilities-specific corner check: right-edge-primary (like inRightPanel) with a generous,
-    // fixed-size trigger zone anchored to the bar's own top edge rather than the panel's own
-    // (possibly collapsed) geometry. Approaching from the right side instead of the bottom keeps
-    // this zone cleanly above the bar's own full-width hover-reveal strip, no overlap possible.
+    // Utilities-specific corner check: right-edge-only, positioned with a real, visible buffer
+    // above the bar rather than just touching its edge - reachable only by approaching along the
+    // right edge, not by moving along the bottom edge toward the corner (which is what still
+    // interfered with the bar's own hover-reveal strip even with a mathematically non-overlapping
+    // boundary).
     function inUtilitiesCorner(panel: Item, x: real, y: real): bool {
         const triggerWidth = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panel.width);
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
         const triggerHeight = Math.max(Config.sidebar.minHoverThreshold, Config.border.thickness + panelHeight);
-        const barTop = height - bar.clampedHeight;
+        const barBuffer = Config.sidebar.minHoverThreshold;
+        const barTop = height - bar.clampedHeight - barBuffer;
         return x > width - triggerWidth && y > barTop - triggerHeight && y < barTop;
     }
 
