@@ -57,7 +57,6 @@ Region {
 
     R {
         panel: root.panels.utilities
-        y: 0
         height: panel.offsetScale < 1 ? panel.height * (1 - root.panels.utilities.offsetScale) + root.borderThickness : 0
     }
 
