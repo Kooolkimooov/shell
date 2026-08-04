@@ -140,7 +140,6 @@ RowLayout {
             DelegateChoice {
                 roleValue: "activeWindow"
                 delegate: EntryWrapper {
-                    Layout.fillWidth: true
                     visible: !root.fullscreen
 
                     ActiveWindow {
