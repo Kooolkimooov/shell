@@ -131,15 +131,14 @@ Item {
         sidebar: sidebar
         popouts: popoutsWrapper.content
 
-        anchors.top: notifications.bottom
+        anchors.bottom: parent.bottom
         anchors.right: parent.right
-        extraTopMargin: -10
     }
 
     Toasts.Toasts {
         id: toasts
 
-        anchors.bottom: parent.bottom
+        anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
         anchors.right: sidebar.left
         anchors.margins: Tokens.padding.medium
     }
@@ -149,8 +148,9 @@ Item {
 
         screenState: root.screenState
 
-        anchors.top: utilities.bottom
-        anchors.bottom: parent.bottom
+        anchors.top: notifications.bottom
+        anchors.bottom: utilities.top
         anchors.right: parent.right
+        anchors.topMargin: -notifications.anchors.topMargin
     }
 }
