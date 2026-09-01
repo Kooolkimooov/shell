@@ -32,6 +32,11 @@ Item {
     property string detachedMode
     property string queuedMode
 
+    // Explicit page/sub-page for detachToPage. -1 falls back to the queuedMode lookup,
+    // which only names the four pages reachable from a popout.
+    property int queuedPageIdx: -1
+    property int queuedSubPage: -1
+
     // Dummy object so Tokens attached prop resolves to global config
     // Anim configs are not per-monitor
     readonly property QtObject dummy: QtObject {}
@@ -59,6 +64,18 @@ Item {
     function close(): void {
         hasCurrent = false;
         detachedMode = "";
+        queuedPageIdx = -1;
+        queuedSubPage = -1;
+    }
+
+    // Open the detached nexus straight to a page, with no popout behind it. hasCurrent
+    // drives the wrapper's reveal (ClipWrapper collapses without it), so a caller that
+    // isn't already showing a popout has to raise it here.
+    function detachToPage(pageIdx: int, subPage: int): void {
+        queuedPageIdx = pageIdx;
+        queuedSubPage = subPage;
+        hasCurrent = true;
+        detach("");
     }
 
     implicitWidth: nonAnimWidth
@@ -144,8 +161,15 @@ Item {
                 anchors.fill: parent
                 nState.screen: root.screen
                 nState.animatingContainer: nexus.opacity < 1
-                nState.currentPageIdx: ["appearance", "network", "bluetooth", "audio"].indexOf(root.queuedMode)
+                nState.currentPageIdx: root.queuedPageIdx >= 0 ? root.queuedPageIdx : ["appearance", "network", "bluetooth", "audio"].indexOf(root.queuedMode)
                 onClose: root.close()
+
+                // Deferred to completion so the page's StackPage exists to receive it;
+                // if it does not yet, its own onCompleted replays the stack instead.
+                Component.onCompleted: {
+                    if (root.queuedSubPage > 0)
+                        nState.openSubPage(root.queuedSubPage);
+                }
             }
         }
     }

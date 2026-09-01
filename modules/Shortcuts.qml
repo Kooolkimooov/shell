@@ -12,6 +12,10 @@ Scope {
     property bool launcherInterrupted
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
 
+    // Nexus page names in PageRegistry order. Kept here rather than on the registry
+    // entries, whose labels are translated and so unusable as stable ids.
+    readonly property list<string> nexusPageNames: ["appearance", "network", "bluetooth", "audio", "updates", "plugins", "panels", "apps", "services", "language", "about"]
+
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
@@ -138,6 +142,27 @@ Scope {
     IpcHandler {
         function open(): void {
             WindowFactory.create();
+        }
+
+        // subPage is an index into the page's StackPage; 0 or less opens the page root.
+        function openPage(page: string, subPage: int): void {
+            const idx = root.nexusPageNames.indexOf(page.toLowerCase());
+            if (idx < 0) {
+                console.warn(lc, `Nexus page "${page}" does not exist. Available: ${root.nexusPageNames.join(", ")}`);
+                return;
+            }
+            if (root.hasFullscreen)
+                return;
+            const panels = ShellState.componentsForActive()?.panels;
+            if (!panels) {
+                console.warn(lc, "No panels registered for the active screen");
+                return;
+            }
+            panels.popouts.detachToPage(idx, subPage);
+        }
+
+        function listPages(): string {
+            return root.nexusPageNames.join("\n");
         }
 
         target: "nexus"
