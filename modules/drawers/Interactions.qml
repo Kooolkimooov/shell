@@ -82,6 +82,12 @@ CustomMouseArea {
     onPressed: event => dragStart = Qt.point(event.x, event.y)
     onContainsMouseChanged: {
         if (!containsMouse) {
+            // A detached popout is dismissed through its own focus grab, not by hover.
+            // Pushing a sub-page destroys the item under the cursor, which drops hover
+            // until the pointer moves again - tearing down here would close it mid-use.
+            if (popouts.isDetached)
+                return;
+
             // Only hide if not activated by shortcut
             if (!osdShortcutActive) {
                 screenState.osd = false;
