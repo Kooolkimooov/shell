@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia.Components
 import Caelestia.Config
 import qs.components
 import qs.services
@@ -9,95 +10,98 @@ import qs.services
 Item {
     id: root
 
-    required property Repeater workspaces
-    required property var occupied
-    required property int groupOffset
+    required property var workspaces
+    required property int wsSpacing
 
-    property list<var> pills: []
+    readonly property color colour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+    property color colourAnimated: colour
 
-    onOccupiedChanged: {
-        if (!occupied)
-            return;
-        let count = 0;
-        const start = groupOffset;
-        const end = start + Config.bar.workspaces.shown;
-        for (const [ws, occ] of Object.entries(occupied)) {
-            if (ws > start && ws <= end && occ) {
-                const isFirstInGroup = Number(ws) === start + 1;
-                const isLastInGroup = Number(ws) === end;
-                if (isFirstInGroup || !occupied[ws - 1]) {
-                    if (pills[count])
-                        pills[count].start = ws;
-                    else
-                        pills.push(pillComp.createObject(root, {
-                            start: ws
-                        }));
-                    count++;
+    Behavior on colourAnimated {
+        CAnim {}
+    }
+
+    // Item wrappers because `layer.enabled` clips the content, and the rects extend 1px outside the parent
+    Item {
+        anchors.fill: parent
+        anchors.margins: -1
+
+        opacity: root.colourAnimated.a
+        layer.enabled: opacity < 1 // Forces opacity to apply to children as a single layer
+
+        Item {
+            anchors.fill: parent
+            anchors.margins: 1
+
+            AnimatedRepeater {
+                model: ScriptModel {
+                    values: root.workspaces
                 }
-                if ((isLastInGroup || !occupied[ws + 1]) && pills[count - 1])
-                    pills[count - 1].end = ws;
-            }
-        }
-        if (pills.length > count)
-            pills.splice(count, pills.length - count).forEach(p => p.destroy());
-    }
 
-    Repeater {
-        model: ScriptModel {
-            values: root.pills.filter(p => p)
-        }
+                removeDuration: Tokens.anim.durations.expressiveDefaultEffects
 
-        StyledRect {
-            id: rect
-
-            required property var modelData
-
-            readonly property Workspace start: root.workspaces.count > 0 ? root.workspaces.itemAt(getWsIdx(modelData.start)) ?? null : null // qmllint disable incompatible-type
-            readonly property Workspace end: root.workspaces.count > 0 ? root.workspaces.itemAt(getWsIdx(modelData.end)) ?? null : null // qmllint disable incompatible-type
-
-            function getWsIdx(ws: int): int {
-                let i = ws - 1;
-                while (i < 0)
-                    i += Config.bar.workspaces.shown;
-                return i % Config.bar.workspaces.shown;
-            }
-
-            anchors.verticalCenter: root.verticalCenter
-
-            x: (start?.x ?? 0) - 1
-            implicitWidth: start && end ? end.x + end.size - start.x + 2 : 0
-            implicitHeight: Tokens.sizes.bar.innerWidth - Tokens.padding.small + 2
-
-            color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
-            radius: Tokens.rounding.full
-
-            scale: 0
-            Component.onCompleted: scale = 1
-
-            Behavior on scale {
-                Anim {
-                    easing: Tokens.anim.standardDecel
-                }
-            }
-
-            Behavior on x {
-                Anim {}
-            }
-
-            Behavior on implicitWidth {
-                Anim {}
+                OccupiedRect {}
             }
         }
     }
 
-    Component {
-        id: pillComp
+    component OccupiedRect: StyledRect {
+        required property int index
+        required property Workspace modelData
 
-        Pill {}
-    }
+        property real leadingRadius: ifAdjacent(0, -1, 0, height / 2)
+        property real trailingRadius: ifAdjacent(root.workspaces.length - 1, 1, 0, height / 2)
+        property real leadingPadding: ifAdjacent(0, -1, root.wsSpacing, 0)
+        property real trailingPadding: ifAdjacent(root.workspaces.length - 1, 1, root.wsSpacing, 0)
 
-    component Pill: QtObject {
-        property int start
-        property int end
+        function ifAdjacent(exclIdx: int, adj: int, yes: real, no: real): real {
+            if (AnimatedRepeater.adding || AnimatedRepeater.removing || !modelData?.isOccupied || index === exclIdx)
+                return no;
+            return root.workspaces[index + adj]?.isOccupied ? yes : no;
+        }
+
+        anchors.top: parent?.top
+        anchors.bottom: parent?.bottom
+        anchors.margins: -1
+
+        x: modelData ? modelData.x + anchors.margins - leadingPadding : 0
+        implicitWidth: modelData ? modelData.LazyListView.visibleSize - anchors.margins * 2 + leadingPadding + trailingPadding : 0
+
+        color: Qt.alpha(root.colour, 1)
+        topLeftRadius: leadingRadius
+        bottomLeftRadius: leadingRadius
+        topRightRadius: trailingRadius
+        bottomRightRadius: trailingRadius
+
+        opacity: modelData?.isOccupied ? 1 : 0
+
+        Behavior on leadingRadius {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on trailingRadius {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on leadingPadding {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on trailingPadding {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
     }
 }

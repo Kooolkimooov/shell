@@ -19,8 +19,15 @@ namespace caelestia::components {
 class LazyListViewAttached : public QObject {
     Q_OBJECT
 
+    // The *Height/*Y names are the original vertical-only API. They measure the
+    // view's main axis, so they still work when it is horizontal - the *Size/*Pos
+    // aliases below are the same storage under names that do not imply an axis.
     Q_PROPERTY(qreal preferredHeight READ preferredHeight WRITE setPreferredHeight NOTIFY preferredHeightChanged)
     Q_PROPERTY(qreal visibleHeight READ visibleHeight WRITE setVisibleHeight NOTIFY visibleHeightChanged)
+    Q_PROPERTY(qreal layoutY READ layoutY NOTIFY layoutYChanged)
+    Q_PROPERTY(qreal preferredSize READ preferredHeight WRITE setPreferredHeight NOTIFY preferredHeightChanged)
+    Q_PROPERTY(qreal visibleSize READ visibleHeight WRITE setVisibleHeight NOTIFY visibleHeightChanged)
+    Q_PROPERTY(qreal layoutPos READ layoutY NOTIFY layoutYChanged)
     Q_PROPERTY(bool ready READ ready NOTIFY readyChanged)
     Q_PROPERTY(bool adding READ adding NOTIFY addingChanged)
     Q_PROPERTY(bool removing READ removing NOTIFY removingChanged)
@@ -34,6 +41,9 @@ public:
 
     [[nodiscard]] qreal visibleHeight() const;
     void setVisibleHeight(qreal height);
+
+    [[nodiscard]] qreal layoutY() const;
+    void setLayoutY(qreal y);
 
     [[nodiscard]] bool ready() const;
     void setReady(bool ready);
@@ -50,6 +60,7 @@ public:
 signals:
     void preferredHeightChanged();
     void visibleHeightChanged();
+    void layoutYChanged();
     void readyChanged();
     void addingChanged();
     void removingChanged();
@@ -58,6 +69,7 @@ signals:
 private:
     qreal m_preferredHeight = -1;
     qreal m_visibleHeight = -1;
+    qreal m_layoutY = 0;
     bool m_ready = false;
     bool m_adding = false;
     bool m_removing = false;
@@ -74,18 +86,25 @@ class LazyListView : public QQuickItem {
     Q_PROPERTY(QQmlComponent* delegate READ delegate WRITE setDelegate NOTIFY delegateChanged)
 
     // Layout
+    Q_PROPERTY(Qt::Orientation orientation READ orientation WRITE setOrientation NOTIFY orientationChanged)
     Q_PROPERTY(qreal spacing READ spacing WRITE setSpacing NOTIFY spacingChanged)
     Q_PROPERTY(qreal contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(qreal layoutHeight READ layoutHeight NOTIFY layoutHeightChanged)
     Q_PROPERTY(qreal contentY READ contentY WRITE setContentY NOTIFY contentYChanged)
+    // Main-axis aliases of the three above, for use when orientation is horizontal
+    Q_PROPERTY(qreal contentSize READ contentHeight NOTIFY contentHeightChanged)
+    Q_PROPERTY(qreal layoutSize READ layoutHeight NOTIFY layoutHeightChanged)
+    Q_PROPERTY(qreal contentPos READ contentY WRITE setContentY NOTIFY contentYChanged)
 
     // Viewport & Lazy Loading
     Q_PROPERTY(QRectF viewport READ viewport WRITE setViewport NOTIFY viewportChanged)
     Q_PROPERTY(bool useCustomViewport READ useCustomViewport WRITE setUseCustomViewport NOTIFY useCustomViewportChanged)
     Q_PROPERTY(qreal cacheBuffer READ cacheBuffer WRITE setCacheBuffer NOTIFY cacheBufferChanged)
+    Q_PROPERTY(bool cullDelegates READ cullDelegates WRITE setCullDelegates NOTIFY cullDelegatesChanged)
 
     // Sizing
     Q_PROPERTY(qreal estimatedHeight READ estimatedHeight WRITE setEstimatedHeight NOTIFY estimatedHeightChanged)
+    Q_PROPERTY(qreal estimatedSize READ estimatedHeight WRITE setEstimatedHeight NOTIFY estimatedHeightChanged)
 
     // Async
     Q_PROPERTY(bool asynchronous READ asynchronous WRITE setAsynchronous NOTIFY asynchronousChanged)
@@ -96,6 +115,8 @@ class LazyListView : public QQuickItem {
 
     // State
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+    // Always false; its notify fires when the index to item mapping changes
+    Q_PROPERTY(bool itemsDirty READ itemsDirty NOTIFY itemsDirtyChanged)
 
 public:
     explicit LazyListView(QQuickItem* parent = nullptr);
@@ -111,6 +132,9 @@ public:
     void setDelegate(QQmlComponent* delegate);
 
     // Layout
+    [[nodiscard]] Qt::Orientation orientation() const;
+    void setOrientation(Qt::Orientation orientation);
+
     [[nodiscard]] qreal spacing() const;
     void setSpacing(qreal spacing);
 
@@ -130,6 +154,9 @@ public:
     [[nodiscard]] qreal cacheBuffer() const;
     void setCacheBuffer(qreal buffer);
 
+    [[nodiscard]] bool cullDelegates() const;
+    void setCullDelegates(bool cull);
+
     // Sizing
     [[nodiscard]] qreal estimatedHeight() const;
     void setEstimatedHeight(qreal height);
@@ -147,9 +174,15 @@ public:
 
     // State
     [[nodiscard]] int count() const;
+    [[nodiscard]] static bool itemsDirty();
+
+    Q_INVOKABLE [[nodiscard]] QQuickItem* itemAtIndex(int index) const;
+    Q_INVOKABLE [[nodiscard]] QQuickItem* itemAt(qreal x, qreal y) const;
+
 signals:
     void modelChanged();
     void delegateChanged();
+    void orientationChanged();
     void spacingChanged();
     void contentHeightChanged();
     void layoutHeightChanged();
@@ -157,11 +190,13 @@ signals:
     void viewportChanged();
     void useCustomViewportChanged();
     void cacheBufferChanged();
+    void cullDelegatesChanged();
     void estimatedHeightChanged();
     void asynchronousChanged();
     void removeDurationChanged();
     void readyDelayChanged();
     void countChanged();
+    void itemsDirtyChanged();
     void viewportAdjustNeeded(qreal delta);
 
 protected:
@@ -198,6 +233,22 @@ private:
     [[nodiscard]] static LazyListViewAttached* attachedFor(QQuickItem* item);
     [[nodiscard]] static LazyListViewAttached* attachedForCreate(QQuickItem* item);
 
+    // Axis mapping. Everything the layout engine computes lives on the *main*
+    // axis (y/height when vertical, x/width when horizontal); delegates are
+    // stretched along the *cross* axis to fill the view.
+    [[nodiscard]] bool isHorizontal() const;
+    [[nodiscard]] const char* mainPosProperty() const;
+    [[nodiscard]] qreal crossExtent() const;
+    [[nodiscard]] qreal mainPos(const QRectF& rect) const;
+    [[nodiscard]] qreal mainExtent(const QRectF& rect) const;
+    [[nodiscard]] qreal itemMainPos(const QQuickItem* item) const;
+    void setItemMainPos(QQuickItem* item, qreal pos) const;
+    void setItemCrossExtent(QQuickItem* item, qreal extent) const;
+    [[nodiscard]] qreal itemImplicitMain(const QQuickItem* item) const;
+    [[nodiscard]] QRectF makeViewport(qreal mainPos, qreal mainExtent) const;
+    [[nodiscard]] QRectF expandMain(const QRectF& rect, qreal amount) const;
+    [[nodiscard]] QRectF clipMain(const QRectF& rect, qreal lo, qreal hi) const;
+
     // Layout
     void relayout();
     void updateLayoutPositions();
@@ -210,8 +261,8 @@ private:
     [[nodiscard]] qreal layoutHeightAt(int index) const;
     [[nodiscard]] qreal visibleHeightAt(int index) const;
     [[nodiscard]] qreal visualYAt(int index) const;
-    [[nodiscard]] static qreal delegateHeight(QQuickItem* item);
-    [[nodiscard]] static qreal delegateVisibleHeight(QQuickItem* item);
+    [[nodiscard]] qreal delegateHeight(QQuickItem* item) const;
+    [[nodiscard]] qreal delegateVisibleHeight(QQuickItem* item) const;
     [[nodiscard]] static bool isDelegateReady(QQuickItem* item);
     void trackHeight(qreal height);
     void untrackHeight(qreal height);
@@ -234,6 +285,7 @@ private:
     void flushPendingInserts();
     void finishDelayedInsert(QQuickItem* item);
     void positionDelegates();
+    void updateLayoutY(QQuickItem* item, int index);
     [[nodiscard]] PropertyList delegateProperties(int modelIndex) const;
     void updateDelegateData(DelegateEntry& entry);
     void remapDelegates(const std::function<int(int)>& mapIndex);
@@ -253,6 +305,7 @@ private:
     QAbstractItemModel* m_model = nullptr;
     QQmlComponent* m_delegate = nullptr;
 
+    Qt::Orientation m_orientation = Qt::Vertical;
     qreal m_spacing = 0;
     qreal m_contentHeight = 0;
     qreal m_layoutHeight = 0;
@@ -261,6 +314,7 @@ private:
     QRectF m_viewport;
     bool m_useCustomViewport = false;
     qreal m_cacheBuffer = 0;
+    bool m_cullDelegates = true;
 
     qreal m_estimatedHeight = -1;
     qreal m_knownHeightSum = 0;

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.services
 
@@ -12,6 +13,12 @@ StyledRect {
     readonly property color colour: Colours.palette.m3tertiary
     readonly property int padding: Config.bar.clock.background ? Tokens.padding.medium : Tokens.padding.extraSmall
     readonly property var font: Tokens.font.body.builders.small.scale(1.1)
+
+    function fontFor(text: string, metricWidth: int): font {
+        // We don't count seconds for the max width because it changes too often
+        const scale = text === "11" ? 1.15 : Math.min(1.05, Math.max(hourMetrics.width, minMetrics.width) / metricWidth);
+        return root.font.width(scale * 100).letterSpacing(scale).build();
+    }
 
     implicitWidth: layout.implicitWidth + root.padding * 2
     implicitHeight: Tokens.sizes.bar.innerWidth
@@ -66,10 +73,7 @@ StyledRect {
             Layout.leftMargin: Tokens.spacing.extraSmall
             Layout.alignment: Qt.AlignVCenter
             text: Time.hourStr
-            font: {
-                const scale = text === "11" ? 1.15 : Math.min(1.05, Math.max(hourMetrics.width, minMetrics.width) / hourMetrics.width);
-                return root.font.width(scale * 100).letterSpacing(scale).build();
-            }
+            font: root.fontFor(text, hourMetrics.width)
             color: root.colour
 
             TextMetrics {
@@ -90,10 +94,7 @@ StyledRect {
         StyledText {
             Layout.alignment: Qt.AlignVCenter
             text: Time.minuteStr
-            font: {
-                const scale = text === "11" ? 1.15 : Math.min(1.05, Math.max(hourMetrics.width, minMetrics.width) / minMetrics.width);
-                return root.font.width(scale * 100).letterSpacing(scale).build();
-            }
+            font: root.fontFor(text, minMetrics.width)
             color: root.colour
 
             TextMetrics {
@@ -107,7 +108,28 @@ StyledRect {
         Loader {
             Layout.alignment: Qt.AlignVCenter
             asynchronous: true
-            active: GlobalConfig.services.useTwelveHourClock
+            active: Config.bar.clock.showSeconds
+            visible: active
+
+            sourceComponent: StyledText {
+                text: Time.format("ss")
+                font: root.fontFor(text, secMetrics.width)
+                color: root.colour
+
+                TextMetrics {
+                    id: secMetrics
+
+                    font: root.font.build()
+                    text: Time.format("ss")
+                }
+            }
+        }
+
+        Loader {
+            Layout.leftMargin: -parent.spacing / 2
+            Layout.alignment: Qt.AlignVCenter
+            asynchronous: true
+            active: Units.twelveHourClock
             visible: active
 
             sourceComponent: StyledText {
