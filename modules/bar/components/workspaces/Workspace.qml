@@ -140,6 +140,7 @@ Item {
             }
             color: root.fgColour
             verticalAlignment: Qt.AlignVCenter
+            horizontalAlignment: Qt.AlignHCenter
             font.family: Tokens.font.workspaces
         }
     }
@@ -153,6 +154,7 @@ Item {
             text: iconCacher.icon
             color: root.fgColour
             verticalAlignment: Qt.AlignVCenter
+            horizontalAlignment: Qt.AlignHCenter
 
             WsIconCacher {
                 id: iconCacher
