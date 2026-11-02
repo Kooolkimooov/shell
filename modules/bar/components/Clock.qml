@@ -111,16 +111,28 @@ StyledRect {
             active: Config.bar.clock.showSeconds
             visible: active
 
-            sourceComponent: StyledText {
-                text: Time.format("ss")
-                font: root.fontFor(text, secMetrics.width)
-                color: root.colour
+            sourceComponent: RowLayout {
+                spacing: layout.spacing
 
-                TextMetrics {
-                    id: secMetrics
-
+                StyledText {
+                    Layout.alignment: Qt.AlignVCenter
+                    text: ":"
                     font: root.font.build()
+                    color: root.colour
+                }
+
+                StyledText {
+                    Layout.alignment: Qt.AlignVCenter
                     text: Time.format("ss")
+                    font: root.fontFor(text, secMetrics.width)
+                    color: root.colour
+
+                    TextMetrics {
+                        id: secMetrics
+
+                        font: root.font.build()
+                        text: Time.format("ss")
+                    }
                 }
             }
         }
