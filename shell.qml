@@ -11,7 +11,6 @@ import qs.services
 import qs.modules.areapicker
 import qs.modules.background
 import qs.modules.drawers
-import qs.modules.lock
 import qs.daemons
 
 ShellRoot {
@@ -43,16 +42,10 @@ ShellRoot {
     Background {}
     Drawers {}
     AreaPicker {}
-    Lock {
-        id: lock
-    }
 
     // Daemons
     Shortcuts {}
     BatteryMonitor {}
     GameMode {}
     IdleInhibit {}
-    IdleMonitors {
-        lock: lock
-    }
 }
