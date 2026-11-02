@@ -47,6 +47,14 @@ class BackgroundVisualiser : public settings::ObjectNode {
     CONFIG_PROPERTY(qreal, spacing, 1)
 };
 
+class BackgroundSlideshow : public settings::ObjectNode {
+    CONFIG_NODE(BackgroundSlideshow, settings::ObjectNode)
+
+    CONFIG_PROPERTY(bool, enabled, false)
+    CONFIG_PROPERTY(int, interval, 600) // Seconds between wallpaper changes
+    CONFIG_PROPERTY(bool, random, true)
+};
+
 class BackgroundConfig : public settings::ObjectNode {
     CONFIG_NODE(BackgroundConfig, settings::ObjectNode)
 
@@ -55,6 +63,7 @@ class BackgroundConfig : public settings::ObjectNode {
     CONFIG_ENUM_PROPERTY(WallpaperTransition, wallpaperTransition, WallpaperTransition::Crossfade)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
+    CONFIG_SUBOBJECT(BackgroundSlideshow, slideshow)
 };
 
 } // namespace caelestia::shell::config

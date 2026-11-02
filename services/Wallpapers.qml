@@ -66,6 +66,43 @@ Searcher {
             forward: false
         })
 
+    // Slideshow: cycle through the wallpaper dir on a timer
+    Timer {
+        id: slideshow
+
+        readonly property var config: GlobalConfig.background.slideshow
+
+        function next(): void {
+            const paths = root.list.map(w => w.path);
+            if (paths.length < 2)
+                return;
+
+            const idx = paths.indexOf(root.actualCurrent);
+            if (config.random) {
+                // Never pick the current one again
+                const choice = Math.floor(Math.random() * (idx === -1 ? paths.length : paths.length - 1));
+                root.setWallpaper(paths[idx !== -1 && choice >= idx ? choice + 1 : choice]);
+            } else {
+                root.setWallpaper(paths[(idx + 1) % paths.length]);
+            }
+        }
+
+        running: config.enabled && root.list.length > 1
+        interval: Math.max(5, config.interval) * 1000
+        repeat: true
+        onTriggered: {
+            // Don't swap the wallpaper out from under a preview
+            if (!root.showPreview)
+                next();
+        }
+    }
+
+    // Give a manually picked wallpaper the full interval
+    onActualCurrentChanged: {
+        if (slideshow.running)
+            slideshow.restart();
+    }
+
     IpcHandler {
         function get(): string {
             return root.actualCurrent;
@@ -77,6 +114,10 @@ Searcher {
 
         function list(): string {
             return root.list.map(w => w.path).join("\n");
+        }
+
+        function next(): void {
+            slideshow.next();
         }
 
         target: "wallpaper"
