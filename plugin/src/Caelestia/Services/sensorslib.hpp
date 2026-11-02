@@ -4,7 +4,7 @@
 
 #include <optional>
 
-namespace caelestia::services::sensorslib {
+namespace caelestia::shell::services::sensorslib {
 
 void ensureInit();
 
@@ -16,4 +16,4 @@ void ensureInit();
 [[nodiscard]] std::optional<double> gpuPciPower();
 [[nodiscard]] QList<double> gpuPciFanRpms();
 
-} // namespace caelestia::services::sensorslib
+} // namespace caelestia::shell::services::sensorslib

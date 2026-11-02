@@ -7,7 +7,7 @@
 
 #include "sensorslib.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -148,4 +148,4 @@ QString Cpu::cleanName(QString s) {
     return s.trimmed();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

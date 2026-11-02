@@ -18,7 +18,7 @@ Q_LOGGING_CATEGORY(lcSensorsLib, "caelestia.services.sensorslib", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::services::sensorslib {
+namespace caelestia::shell::services::sensorslib {
 
 namespace {
 
@@ -115,7 +115,7 @@ template <typename F> void forEachTempFeature(short busType, F&& fn) {
 enum class GpuTempKind : std::uint8_t {
     None,
     Primary,
-    Fallback
+    Fallback,
 };
 
 // Indexed tempN labels and the vendor die labels are the reading we want,
@@ -170,10 +170,10 @@ std::optional<double> cpuPackageTemp() {
     forEachTempFeature(
         SENSORS_BUS_TYPE_ANY, [&](const sensors_chip_name* chip, const sensors_feature* feat, const QByteArray& label) {
             if (labelStartsWith(label, "Package id ") || labelEquals(label, "Tdie")) {
-                if (auto v = readTempInput(chip, feat))
+                if (const auto v = readTempInput(chip, feat))
                     primary = v;
             } else if (labelEquals(label, "Tctl")) {
-                if (auto v = readTempInput(chip, feat))
+                if (const auto v = readTempInput(chip, feat))
                     fallback = v;
             }
         });
@@ -317,4 +317,4 @@ QList<double> gpuPciFanRpms() {
     return fans;
 }
 
-} // namespace caelestia::services::sensorslib
+} // namespace caelestia::shell::services::sensorslib
