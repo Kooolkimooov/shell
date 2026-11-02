@@ -98,7 +98,7 @@ CustomMouseArea {
             if (!dashboardShortcutActive)
                 screenState.dashboard = false;
 
-            if (!utilitiesShortcutActive)
+            if (Config.utilities.showOnHover && !utilitiesShortcutActive)
                 screenState.utilities = false;
 
             if (!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) {
@@ -253,14 +253,16 @@ CustomMouseArea {
         }
 
         // Show utilities on hover
-        const showUtilities = inUtilitiesCorner(panels.utilities, x, y);
+        if (Config.utilities.showOnHover) {
+            const showUtilities = inUtilitiesCorner(panels.utilities, x, y);
 
-        // Always update visibility based on hover if not in shortcut mode
-        if (!utilitiesShortcutActive) {
-            screenState.utilities = showUtilities;
-        } else if (showUtilities) {
-            // If hovering over utilities area while in shortcut mode, transition to hover control
-            utilitiesShortcutActive = false;
+            // Always update visibility based on hover if not in shortcut mode
+            if (!utilitiesShortcutActive) {
+                screenState.utilities = showUtilities;
+            } else if (showUtilities) {
+                // If hovering over utilities area while in shortcut mode, transition to hover control
+                utilitiesShortcutActive = false;
+            }
         }
 
         // Show popouts on hover
